@@ -1,0 +1,103 @@
+public function edit(Request $request, $id = null)
+    {
+        $category = $id ? Categorie::findOrFail($id) : new Categorie();
+        $allCategories = Categorie::all();
+    
+        $title = $id ? "Edit Category" : "Add Category";
+    
+        if ($request->isMethod('post')) {
+            $data = $request->all();
+    
+            $rules = [
+                'category_name' => 'required',
+                'url' => 'required',
+                'description' => 'required',
+                // 'parent_id' => 'nullable|exists:categories,id',
+            ];
+    
+            $customMessages = [
+                'category_name.required' => 'Category Name is required',
+                'url.required' => 'Category URL is required',
+                'description.required' => 'Category Description is required',
+                // 'parent_id.exists' => 'Selected parent category does not exist.',
+            ];
+    
+            $this->validate($request, $rules, $customMessages);
+    
+            // Check if old images should be deleted
+            if ($id && $request->has('delete_old_images') && $request->input('delete_old_images') == 1) {
+                $oldImages = json_decode($category->category_image, true);
+    
+                foreach ($oldImages as $oldImage) {
+                    // Delete the old image file
+                    Storage::delete('images/' . $oldImage);
+                }
+    
+                // Clear the category_image field in the database
+                $category->category_image = null;
+            }
+    
+            $category->fill($data);
+    
+            // Update the parent_id
+            // $category->parent_id = $data['parent_id'];
+            $category->parent_id = $data['parent_id'] ?: null;
+    
+            if ($request->hasFile('images')) {
+                $imagePaths = [];
+    
+                foreach ($request->file('images') as $image) {
+                    $imageName = time() . '_' . $image->getClientOriginalName();
+                    $image->storeAs('images', $imageName, 'public');
+                    $imagePaths[] = $imageName;
+                }
+                // Merge old and new images if needed
+                if ($id && !$request->has('delete_old_images')) {
+                    $oldImages = json_decode($category->category_image, true);
+                    $imagePaths = is_array($oldImages) ? array_merge($oldImages, $imagePaths) : $imagePaths;
+                }
+    
+                $category->category_image = json_encode($imagePaths);
+            }
+    
+            $category->save();
+    
+            $message = $id ? 'Category updated successfully' : 'Category added successfully';
+    
+            return redirect('admin/categories')->with('success_message', $message);
+        }
+    
+        return view('admin.categories.add_edit_category', compact('title', 'category', 'allCategories'));
+    }
+    
+////////////blade
+<div class="form-group">
+                                <label for="images">Images</label>
+                                <input type="file" class="form-control" id="images" name="images">
+                                <!-- <small class="text-muted">You can select multiple images by holding down the Ctrl (Windows) or Command (Mac) key while selecting.</small> -->
+                                <div>
+                                    @if(!empty($category['category_image']))
+                                    @php
+                                    $imagePaths = json_decode( $category['category_image']);
+                                    @endphp
+
+
+                                    @foreach ($imagePaths as $index => $image)
+                                    <div>
+                                        <!-- <img style="width: 100px;" src="{{ asset($image) }}"> -->
+                                        <img style="width: 100px;" src="{{ asset('storage/images/' . $image) }}">
+
+                                        &nbsp;&nbsp;
+                                        <a style='color: #3f6ed3;' class="confirmDeleteArray" href="javascript:;" name="Category_Image" catid="{{ $category['id'] }}" title="Delete Category Image" url-attr="{{ $image  }}">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+
+                                        &nbsp;&nbsp;
+                                        <span>{{ $index + 1 }}. {{ $image }}</span>
+                                    </div>
+                                    @endforeach
+                                    @endif
+                                </div>
+                            </div>
+
+to fetch

@@ -1,0 +1,95 @@
+            // Validate the request data if needed
+            // $request->validate([
+            //     'cms_pages.view' => 'nullable|boolean',
+            //     'cms_pages.edit' => 'nullable|boolean',
+            //     'cms_pages.full' => 'nullable|boolean',
+            //     // Add more validation rules as needed
+            // ]);
+    
+            // $data = $request->all();
+            // $subadminRoles = AdminsRole::where('subadmin_id', $id)->first();
+    
+            // if (!$subadminRoles) {
+            //     $subadminRoles = new AdminsRole();
+            //     $subadminRoles->subadmin_id = $id;
+            //     $subadminRoles->module = 'cms_pages';
+            // }
+    
+            // $subadminRoles->view_access = $data['cms_pages']['view'] ?? 0;
+            // $subadminRoles->edit_access = $data['cms_pages']['edit'] ?? 0;
+            // $subadminRoles->full_access = $data['cms_pages']['full'] ?? 0;
+            // $subadminRoles->save();
+    
+            // return redirect()->back()->with('success_message', 'Roles updated successfully');
+
+
+
+
+
+
+
+                public function sabAdmins()
+    {
+        Session::put('page','subadmins');
+        $subadmins=Admin::get()->toArray();
+        // dd($SubAdmin);
+        $rolepermisctionCount= AdminsRole::where(['subadmin_id'=>Auth::guard('admin')->user()->id,'module'=>'subadmins'])->count();
+        $pagesModule=array();
+        if (Auth::guard('admin')->user()->type=="admin"){
+            $pagesModule['view_access']=1;
+            $pagesModule['edit_access']=1;
+            $pagesModule['full_access']=1;
+        }else if($rolepermisctionCount==0){
+            $message="This feature is restricted for you";
+            return redirect('admin/dashboard')->with('error_massage',$message);
+        }else{
+            $pagesModule=AdminsRole::where(['subadmin_id'=>Auth::guard('admin')->user()->id,'module'=>'subadmins'])->first()->toArray();
+        }
+
+        // $subadmins = Admin::where('type', 'subadmin')->get();
+        return view('admin.subadmins.subadmins')->with(compact('subadmins','pagesModule'));
+    }
+
+
+        public function sabAdmins()
+    {
+        $subadmins = Admin::where('type', 'subadmin')->get();
+        return view('admin.subadmins.subadmins')->with(compact('subadmins'));
+    }
+
+
+
+
+
+
+
+
+    public function products()
+    {
+        Session::put('page', 'products');
+
+        $products = Product::all(); // Update to use the Product model
+
+        $productsModuleCount = AdminsRole::where([
+            'subadmin_id' => Auth::guard('admin')->user()->id,
+            'module' => 'admin_product'
+        ])->count();
+
+        $pagesModule = [];
+
+        if (Auth::guard('admin')->user()->type == "admin") {
+            $pagesModule['view_access'] = 1;
+            $pagesModule['edit_access'] = 1;
+            $pagesModule['full_access'] = 1;
+        } else if ($productsModuleCount == 0) {
+            $message = "This feature is restricted for you";
+            return redirect('admin/dashboard')->with('error_massage', $message);
+        } else {
+            $pagesModule = AdminsRole::where([
+                'subadmin_id' => Auth::guard('admin')->user()->id,
+                'module' => 'admin_product'
+            ])->first()->toArray();
+        }
+
+        return view('admin.products.products')->with(compact('products', 'pagesModule'));
+    }
